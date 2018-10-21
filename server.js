@@ -21,6 +21,9 @@ passport.serializeUser(function (user, done) {
     console.log(user);
 done(null, user);
 });
+passport.deserializeUser(function(user, done) {
+    done(null, user);
+  });
 
 passport.use(new LocalStrategy(function(username, password, done) {
     if ((username === "john") && (password === "password")) {
@@ -30,6 +33,14 @@ passport.use(new LocalStrategy(function(username, password, done) {
     }
   }
 ));
+
+function authOnly(req,res,next){
+    if (req.isAuthenticated()){
+       next();
+    } else {
+        res.redirect('/login');
+    }
+}
 
 app.post('/login', passport.authenticate('local', {
     successRedirect: '/',
@@ -41,10 +52,19 @@ app.get('/login', (req, res) => {
   });
 
 // Point static path to dist
-app.use(express.static(path.join(__dirname, 'src')));
+app.use(authOnly, express.static(path.join(__dirname, 'src')));
 
+app.get('/getUserDetails', authOnly, function (req, res){ 
+    res.send(req.user); 
+});
+
+app.get('/logout', function (req, res) {
+    req.logout();
+    res.send('Logged out!');
+});
+  
 // catch all other routes and return the index file
-app.get('*', (req, res) => {
+app.get('*', authOnly, (req, res) => {
     res.sendFile(path.join(__dirname, 'src/index.html'))
 });
 
